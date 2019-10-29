@@ -14,7 +14,7 @@ void array_shift_left(void *array_start, void *array_end, size_t size)
     }
 }
 
-int readn(int fd, char *buf, size_t n)
+int read_line(int fd, char *buf, size_t n)
 {
     int count, rc;
     while (n--)
