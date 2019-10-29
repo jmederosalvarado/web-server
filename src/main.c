@@ -113,11 +113,15 @@ bool accept_new_client(int listenfd, struct client *client)
     struct sockaddr_in client_addr;
     int addr_len;
 
+    printf("--> Connecting <client-ip>\n");
+
     int fd = accept(listenfd, (struct sockaddr *)&client_addr, &addr_len);
     if (fd < 0)
         return false;
 
-    client_init(client, fd, CLIENT_STATUS_READING);
+    printf("--> Connection stablished <client-ip>\n");
+
+    client_init(client, fd);
     return true;
 }
 
