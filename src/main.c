@@ -5,13 +5,17 @@
 #include <netdb.h>
 #include <stdbool.h>
 #include <sys/select.h>
+#include <unistd.h>
 
 #include <client.h>
+#include <utils.h>
 
 #define MAX_CLIENTS 10
 
 int open_listenfd(int port);
-int assign_clients_to_sets(fd_set *read_set, fd_set *write_set, struct client *clients);
+int assign_clients_to_set(fd_set *read_set, fd_set *write_set, struct client *client);
+bool accept_new_client(int listenfd, struct client *client);
+void clean_clients(struct client *clients, int *clients_count);
 
 int main(int argc, char **argv)
 {
@@ -21,9 +25,10 @@ int main(int argc, char **argv)
         perror("Opening listenfd");
         return -1;
     }
-    printf("--> Listening on <ip>:<port>");
+    printf("--> Listening on <ip>:<port>\n");
 
     struct client clients[MAX_CLIENTS];
+    int clients_count = 0;
 
     while (true)
     {
@@ -35,6 +40,23 @@ int main(int argc, char **argv)
         FD_ZERO(&write_set);
 
         int max_fd = assign_clients_to_sets(&read_set, &write_set, clients);
+        printf("--> Waiting for connection...\n");
+
+        select(max_fd + 1, &read_set, &write_set, NULL, NULL);
+
+        if (FD_ISSET(listenfd, &read_set) && clients_count < MAX_CLIENTS && !accept_new_client(listenfd, clients))
+            perror("--> Accepting new client");
+
+        for (int i = 0; i < clients_count; i++)
+        {
+            if (clients[i].status == CLIENT_STATUS_READING && FD_ISSET(clients[i].fd, &read_set))
+                client_handle_read(clients + i);
+
+            if (clients[i].status == CLIENT_STATUS_WRITING && FD_ISSET(clients[i].fd, &write_set))
+                client_handle_write(clients + i);
+        }
+
+        clean_clients(clients, &clients_count);
     }
 
     return 0;
@@ -84,4 +106,29 @@ int assign_clients_to_sets(fd_set *read_set, fd_set *write_set, struct client *c
         max_fd = max(max_fd, clients[i].fd);
     }
     return max_fd;
+}
+
+bool accept_new_client(int listenfd, struct client *client)
+{
+    struct sockaddr_in client_addr;
+    int addr_len;
+
+    int fd = accept(listenfd, (struct sockaddr *)&client_addr, &addr_len);
+    if (fd < 0)
+        return false;
+
+    client_init(client, fd, CLIENT_STATUS_READING);
+    return true;
+}
+
+void clean_clients(struct client *clients, int *clients_count)
+{
+    for (int i = 0; i < (*clients_count) - 1; i++)
+    {
+        if (clients[i].status = CLIENT_STATUS_DONE)
+        {
+            close(clients[i].fd);
+            array_shift_left(clients + i, clients + *clients_count, sizeof(struct client));
+        }
+    }
 }
