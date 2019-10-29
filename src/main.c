@@ -6,10 +6,12 @@
 #include <stdbool.h>
 #include <sys/select.h>
 
+#include <client.h>
+
 #define MAX_CLIENTS 10
 
 int open_listenfd(int port);
-int open_clientfd(char *hostname, int port);
+int assign_clients_to_sets(fd_set *read_set, fd_set *write_set, struct client *clients);
 
 int main(int argc, char **argv)
 {
@@ -19,7 +21,21 @@ int main(int argc, char **argv)
         perror("Opening listenfd");
         return -1;
     }
-    printf("Listening on <ip>:<port>");
+    printf("--> Listening on <ip>:<port>");
+
+    struct client clients[MAX_CLIENTS];
+
+    while (true)
+    {
+        fd_set read_set;
+        FD_ZERO(&read_set);
+        FD_SET(listenfd, &read_set);
+
+        fd_set write_set;
+        FD_ZERO(&write_set);
+
+        int max_fd = assign_clients_to_sets(&read_set, &write_set, clients);
+    }
 
     return 0;
 }
@@ -53,27 +69,19 @@ int open_listenfd(int port)
     return listenfd;
 }
 
-int open_clientfd(char *hostname, int port)
+int assign_clients_to_sets(fd_set *read_set, fd_set *write_set, struct client *clients)
 {
-    int clientfd;
-    struct hostent *hp;
-    struct sockaddr_in serveraddr;
+    int max_fd = 0;
+    for (int i = 0; i < MAX_CLIENTS; i++)
+    {
+        if (clients[i].fd < 0)
+            continue;
+        if (clients[i].status == CLIENT_STATUS_READING)
+            FD_SET(clients[i].fd, read_set);
+        else if (clients[i].status == CLIENT_STATUS_WRITING)
+            FD_SET(clients[i].fd, write_set);
 
-    if ((clientfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-        return -1; // Check errno for cause of error
-
-    // Fill in the server’s IP address and port
-    if ((hp = gethostbyname(hostname)) == NULL)
-        return -2; // Check h_errno for cause of error
-
-    bzero((char *)&serveraddr, sizeof(serveraddr));
-    serveraddr.sin_family = AF_INET;
-    bcopy((char *)hp->h_addr_list[0], (char *)&serveraddr.sin_addr.s_addr, hp->h_length);
-    serveraddr.sin_port = htons(port);
-
-    // Establish a connection with the server
-    if (connect(clientfd, (struct serveraddr *)&serveraddr, sizeof(serveraddr)) < 0)
-        return -1;
-
-    return clientfd;
+        max_fd = max(max_fd, clients[i].fd);
+    }
+    return max_fd;
 }
