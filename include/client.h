@@ -9,9 +9,11 @@ struct client
 {
     int fd;
     int status;
+    char *request;
 };
 
 void client_init(struct client *client, int fd, int status);
+void client_close(struct client *client);
 void client_read(struct client *client);
 void client_write(struct client *client);
 

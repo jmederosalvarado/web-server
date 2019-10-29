@@ -127,7 +127,7 @@ void clean_clients(struct client *clients, int *clients_count)
     {
         if (clients[i].status = CLIENT_STATUS_DONE)
         {
-            close(clients[i].fd);
+            client_close(clients + i);
             array_shift_left(clients + i, clients + *clients_count, sizeof(struct client));
         }
     }
