@@ -22,7 +22,7 @@ $(TARGET): $(OBJ) $(MAIN_OBJ)
 $(sort $(NECESSARY_DIRS)):
 	mkdir -p $@
 
-.PHONY: compile run clean dirs
+.PHONY: compile clean
 
 clean:
 	rm -rf obj bin
