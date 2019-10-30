@@ -52,20 +52,27 @@ int main(int argc, char **argv)
 
         if (FD_ISSET(listenfd, &read_set) && clients_count < MAX_CLIENTS)
         {
-            if (!accept_new_client(listenfd, clients + clients_count))
+            if (accept_new_client(listenfd, clients + clients_count))
+                clients_count++;
+            else
                 fprintf(stderr, ERROR_COLOR "--> Accepting new client: %s" COLOR_RESET, strerror(errno));
-            clients_count++;
         }
 
         for (int i = 0; i < clients_count; i++)
         {
-            if (clients[i].status == CLIENT_STATUS_READING && FD_ISSET(clients[i].fd, &read_set))
-                if (!client_read(clients + i))
+            if (FD_ISSET(clients[i].fd, &read_set))
+            {
+                printf("--> Client (ip: %s, fd: %d) is ready for reading\n", clients[i].ip, clients[i].fd);
+                if (clients[i].status == CLIENT_STATUS_READING && !client_read(clients + i))
                     fprintf(stderr, ERROR_COLOR "--> Error reading from client: %d\n" COLOR_RESET, clients[i].fd);
+            }
 
-            if (clients[i].status == CLIENT_STATUS_WRITING && FD_ISSET(clients[i].fd, &write_set))
-                if (!client_write(clients + i))
+            if (FD_ISSET(clients[i].fd, &write_set))
+            {
+                printf("--> Client (ip: %s, fd: %d) is ready for writing\n", clients[i].ip, clients[i].fd);
+                if (clients[i].status == CLIENT_STATUS_WRITING && !client_write(clients + i))
                     fprintf(stderr, ERROR_COLOR "--> Error writing to client: %d\n" COLOR_RESET, clients[i].fd);
+            }
         }
 
         clean_clients(clients, &clients_count);
