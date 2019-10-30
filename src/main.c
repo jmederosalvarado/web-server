@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <netinet/in.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -6,26 +7,29 @@
 #include <stdbool.h>
 #include <sys/select.h>
 #include <unistd.h>
+#include <string.h>
+#include <errno.h>
+#include <arpa/inet.h>
 
 #include <client.h>
 #include <utils.h>
 
 #define MAX_CLIENTS 10
 
-int open_listenfd(int port);
-int assign_clients_to_set(fd_set *read_set, fd_set *write_set, struct client *client);
+int open_listenfd();
+int assign_clients_to_sets(fd_set *read_set, fd_set *write_set, struct client *client, int clients_count);
 bool accept_new_client(int listenfd, struct client *client);
 void clean_clients(struct client *clients, int *clients_count);
+void print_clients(struct client *clients, int clients_count, bool verbose);
 
 int main(int argc, char **argv)
 {
-    int listenfd = open_listenfd(8080);
+    int listenfd = open_listenfd();
     if (listenfd < 0)
     {
-        perror("Opening listenfd");
+        fprintf(stderr, ERROR_COLOR "--> Opening listenfd: %s" COLOR_RESET, strerror(errno));
         return -1;
     }
-    printf("--> Listening on <ip>:<port>\n");
 
     struct client clients[MAX_CLIENTS];
     int clients_count = 0;
@@ -39,21 +43,29 @@ int main(int argc, char **argv)
         fd_set write_set;
         FD_ZERO(&write_set);
 
-        int max_fd = assign_clients_to_sets(&read_set, &write_set, clients);
+        int max_fd = assign_clients_to_sets(&read_set, &write_set, clients, clients_count);
         printf("--> Waiting for connection...\n");
 
-        select(max_fd + 1, &read_set, &write_set, NULL, NULL);
+        print_clients(clients, clients_count, true);
 
-        if (FD_ISSET(listenfd, &read_set) && clients_count < MAX_CLIENTS && !accept_new_client(listenfd, clients))
-            perror("--> Accepting new client");
+        select(max(listenfd, max_fd) + 1, &read_set, &write_set, NULL, NULL);
+
+        if (FD_ISSET(listenfd, &read_set) && clients_count < MAX_CLIENTS)
+        {
+            if (!accept_new_client(listenfd, clients + clients_count))
+                fprintf(stderr, ERROR_COLOR "--> Accepting new client: %s" COLOR_RESET, strerror(errno));
+            clients_count++;
+        }
 
         for (int i = 0; i < clients_count; i++)
         {
             if (clients[i].status == CLIENT_STATUS_READING && FD_ISSET(clients[i].fd, &read_set))
-                client_handle_read(clients + i);
+                if (!client_read(clients + i))
+                    fprintf(stderr, ERROR_COLOR "--> Error reading from client: %d\n" COLOR_RESET, clients[i].fd);
 
             if (clients[i].status == CLIENT_STATUS_WRITING && FD_ISSET(clients[i].fd, &write_set))
-                client_handle_write(clients + i);
+                if (!client_write(clients + i))
+                    fprintf(stderr, ERROR_COLOR "--> Error writing to client: %d\n" COLOR_RESET, clients[i].fd);
         }
 
         clean_clients(clients, &clients_count);
@@ -62,7 +74,7 @@ int main(int argc, char **argv)
     return 0;
 }
 
-int open_listenfd(int port)
+int open_listenfd()
 {
     int listenfd, optval = 1;
     struct sockaddr_in serveraddr;
@@ -75,12 +87,15 @@ int open_listenfd(int port)
     if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval, sizeof(int)) < 0)
         return -1;
 
+    struct servent *port;
+    port = getservbyname("http-alt", "tcp");
+
     // Listenfd will be an end point for all requests to port
     // on any IP address for this host
     bzero((char *)&serveraddr, sizeof(serveraddr));
     serveraddr.sin_family = AF_INET;
     serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    serveraddr.sin_port = htons((unsigned short)port);
+    serveraddr.sin_port = port->s_port;
     if (bind(listenfd, (struct sockaddr *)&serveraddr, sizeof(serveraddr)) < 0)
         return -1;
 
@@ -88,19 +103,21 @@ int open_listenfd(int port)
     if (listen(listenfd, MAX_CLIENTS) < 0)
         return -1;
 
+    char *ip = inet_ntoa(serveraddr.sin_addr);
+    printf("--> Listening on %s:%d\n", ip, ntohs(serveraddr.sin_port));
+
     return listenfd;
 }
 
-int assign_clients_to_sets(fd_set *read_set, fd_set *write_set, struct client *clients)
+int assign_clients_to_sets(fd_set *read_set, fd_set *write_set, struct client *clients, int clients_count)
 {
     int max_fd = 0;
-    for (int i = 0; i < MAX_CLIENTS; i++)
+    for (int i = 0; i < clients_count; i++)
     {
-        if (clients[i].fd < 0)
-            continue;
         if (clients[i].status == CLIENT_STATUS_READING)
             FD_SET(clients[i].fd, read_set);
-        else if (clients[i].status == CLIENT_STATUS_WRITING)
+
+        if (clients[i].status == CLIENT_STATUS_WRITING)
             FD_SET(clients[i].fd, write_set);
 
         max_fd = max(max_fd, clients[i].fd);
@@ -111,28 +128,53 @@ int assign_clients_to_sets(fd_set *read_set, fd_set *write_set, struct client *c
 bool accept_new_client(int listenfd, struct client *client)
 {
     struct sockaddr_in client_addr;
-    int addr_len;
+    int addr_len = sizeof(client_addr);
 
-    printf("--> Connecting <client-ip>\n");
+    char *ip = inet_ntoa(client_addr.sin_addr);
+
+    printf("--> Connecting %s\n", ip);
 
     int fd = accept(listenfd, (struct sockaddr *)&client_addr, &addr_len);
     if (fd < 0)
         return false;
 
-    printf("--> Connection stablished <client-ip>\n");
+    printf("--> Connection stablished %s\n", ip);
 
-    client_init(client, fd);
+    client_init(client, fd, ip);
     return true;
 }
 
 void clean_clients(struct client *clients, int *clients_count)
 {
-    for (int i = 0; i < (*clients_count) - 1; i++)
+    int k = 0;
+    for (int i = 0; i < *clients_count; i++)
     {
-        if (clients[i].status = CLIENT_STATUS_DONE)
-        {
+        if (clients[i].status == CLIENT_STATUS_DONE)
             client_close(clients + i);
-            array_shift_left(clients + i, clients + *clients_count, sizeof(struct client));
+        else
+        {
+            clients[k] = clients[i];
+            k++;
+        }
+    }
+    *clients_count = k;
+}
+
+void print_clients(struct client *clients, int clients_count, bool verbose)
+{
+    printf("--> Currently %d clients\n", clients_count);
+    if (verbose)
+    {
+        for (int i = 0; i < clients_count; i++)
+        {
+            struct client client = clients[i];
+            printf("--> Client {\n");
+            printf("  ip: %s\n", client.ip);
+            printf("  fd: %d\n", client.fd);
+            printf("  status: %d\n", client.status);
+            printf("  error: %d\n", client.error);
+            printf("  request: %s\n", client.request);
+            printf("}\n");
         }
     }
 }

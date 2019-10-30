@@ -1,39 +1,35 @@
 #include <utils.h>
 #include <string.h>
 #include <unistd.h>
-
-void array_shift_left(void *array_start, void *array_end, size_t size)
-{
-    char *start = (char *)array_start;
-    char *end = (char *)array_end;
-
-    while (start < end - size)
-    {
-        strncpy(start, start + size, size);
-        start += size;
-    }
-}
+#include <stdio.h>
+#include <string.h>
+#include <errno.h>
 
 int read_line(int fd, char *buf, size_t n)
 {
-    int count, rc;
-    while (n--)
+    int rc = read(fd, buf, n);
+    if (rc == -1)
+        return -1;
+
+    int count = 0;
+    for (int i = 0; i < strlen(buf); i++)
     {
-        if ((rc = read(fd, buf, 1)) == 1)
+        if (buf[i] == '\n')
         {
-            if (*buf == '\n')
-                break;
-            else
-            {
-                buf++;
-                count++;
-            }
-        }
-        else if (rc == 0)
+            buf[i] = '\0';
             break;
-        else
-            return -1;
+        }
+        count++;
     }
-    *buf = '\0';
     return count;
+}
+
+int max(int a, int b)
+{
+    return a > b ? a : b;
+}
+
+int min(int a, int b)
+{
+    return a < b ? a : b;
 }
