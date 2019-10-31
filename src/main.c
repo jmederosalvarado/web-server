@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <arpa/inet.h>
 
+#include <path_utils.h>
 #include <client.h>
 #include <utils.h>
 
@@ -22,8 +23,18 @@ bool accept_new_client(int listenfd, struct client *client);
 void clean_clients(struct client *clients, int *clients_count);
 void print_clients(struct client *clients, int clients_count, bool verbose);
 
+char *root;
+
 int main(int argc, char **argv)
 {
+    if (argc != 2)
+    {
+        fprintf(stderr, "Usage: %s <dir>", argv[0]);
+        return -1;
+    }
+
+    set_root(argv[1]);
+
     int listenfd = open_listenfd();
     if (listenfd < 0)
     {

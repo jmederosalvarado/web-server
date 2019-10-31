@@ -37,7 +37,11 @@ bool client_read(struct client *client)
 
     printf("--> Read: %d", read_count);
 
-    int matched = sscanf(buf, "GET %s %s", client->request, NULL);
+    char request[1024], version[1024];
+    int matched = sscanf(buf, "GET %s %s", request, version);
+
+    sprintf(client->request, get_root());
+    strcat(client->request, request);
 
     if (!matched)
     {
