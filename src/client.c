@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <path_lister.h>
+#include <file_sender.h>
 #include <path_utils.h>
 
 void client_init(struct client *client, int fd, char *ip)
@@ -76,7 +77,7 @@ bool client_write(struct client *client)
 
     if (client->writer != NULL)
     {
-        if ((*client->writer->write)(client->writer) == WRITER_STATUS_DONE)
+        if (client->writer->write(client->writer) == WRITER_STATUS_DONE)
         {
             client->status = CLIENT_STATUS_DONE;
             free(client->writer);
@@ -89,6 +90,13 @@ bool client_write(struct client *client)
     {
         client->writer = malloc(sizeof(struct path_lister));
         path_lister_init((struct path_lister *)client->writer, client->fd, client->request);
+        return true;
+    }
+
+    if (is_file(client->request))
+    {
+        client->writer = malloc(sizeof(struct file_sender));
+        file_sender_init((struct file_sender *)client->writer, client->fd, client->request);
         return true;
     }
 
