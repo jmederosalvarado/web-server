@@ -4,9 +4,9 @@
 struct path
 {
     char name[1024];
-    char type[1024];
-    char permissions[1024];
-    char moddate[1024];
+    char type[50];
+    char permissions[50];
+    char moddate[50];
     int size;
 };
 
