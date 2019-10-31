@@ -10,7 +10,7 @@
 void client_init(struct client *client, int fd, char *ip)
 {
     client->fd = fd;
-    client->error = -1;
+    client->error = false;
     client->status = CLIENT_STATUS_READING;
     client->request[0] = '\0';
     client->writer = NULL;
@@ -23,7 +23,7 @@ void client_close(struct client *client)
 
     close(client->fd);
     client->fd = -1;
-    client->error = -1;
+    client->error = false;
     client->status = CLIENT_STATUS_DONE;
     client->request[0] = '\0';
 }
@@ -42,7 +42,7 @@ bool client_read(struct client *client)
     if (!matched)
     {
         fprintf(stderr, ERROR_COLOR "--> Method not allowed %s\n" COLOR_RESET, buf);
-        client->error = 400;
+        client->error = true;
     }
 
     if (read_count == 0)
@@ -52,7 +52,7 @@ bool client_read(struct client *client)
         client->status = CLIENT_STATUS_WRITING;
         if (read_count < 0)
         {
-            client->error = 500;
+            client->error = true;
             return false;
         }
     }
@@ -61,6 +61,8 @@ bool client_read(struct client *client)
 
 int is_dir(const char *path);
 int is_file(const char *path);
+
+void send_error(int fd, int error);
 
 bool client_write(struct client *client)
 {
@@ -84,7 +86,7 @@ bool client_write(struct client *client)
         return true;
     }
 
-    client->status = CLIENT_STATUS_DONE;
+    client->error = true;
     return false;
 }
 
