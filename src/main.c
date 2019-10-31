@@ -197,7 +197,7 @@ void print_clients(struct client *clients, int clients_count, bool verbose)
             printf("  fd: %d\n", client.fd);
             printf("  status: %d\n", client.status);
             printf("  error: %d\n", client.error);
-            printf("  request: %s\n", client.request);
+            printf("  request: %s\n", client.request.path);
             printf("}\n");
         }
     }

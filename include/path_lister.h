@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <path.h>
+#include <request.h>
 
 struct path_lister
 {
@@ -12,15 +13,16 @@ struct path_lister
 
     struct path *paths;
     int paths_count;
+    int paths_capacity;
 
     int status;
 
     DIR *dir;
     int index;
-    char *request;
+    struct request request;
 };
 
-void path_lister_init(struct path_lister *path_lister, int fd, char *request);
+void path_lister_init(struct path_lister *path_lister, int fd, struct request request);
 int path_lister_write(struct writer *writer);
 
 #endif

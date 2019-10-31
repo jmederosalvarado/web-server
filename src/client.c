@@ -13,7 +13,7 @@ void client_init(struct client *client, int fd, char *ip)
     client->fd = fd;
     client->error = -1;
     client->status = CLIENT_STATUS_READING;
-    client->request[0] = '\0';
+    client->request.path[0] = '\0';
     client->writer = NULL;
     strcpy(client->ip, ip);
 }
@@ -26,7 +26,7 @@ void client_close(struct client *client)
     client->fd = -1;
     client->error = -1;
     client->status = CLIENT_STATUS_DONE;
-    client->request[0] = '\0';
+    client->request.path[0] = '\0';
 }
 
 bool client_read(struct client *client)
@@ -39,8 +39,17 @@ bool client_read(struct client *client)
     char request[1024], version[1024];
     int matched = sscanf(buf, "GET %s %s", request, version);
 
-    sprintf(client->request, "%s", get_root());
-    strcat(client->request, request);
+    char *pos = NULL;
+    if (pos = strstr(request, "@orderby-"))
+    {
+        strcpy(client->request.orderby, pos + strlen("@orderby-"));
+        *pos = '\0';
+    }
+    else
+        strcpy(client->request.orderby, "name");
+
+    sprintf(client->request.path, "%s", get_root());
+    strcat(client->request.path, request);
 
     if (!matched)
     {
@@ -86,17 +95,17 @@ bool client_write(struct client *client)
         return true;
     }
 
-    if (is_dir(client->request))
+    if (is_dir(client->request.path))
     {
         client->writer = malloc(sizeof(struct path_lister));
         path_lister_init((struct path_lister *)client->writer, client->fd, client->request);
         return true;
     }
 
-    if (is_file(client->request))
+    if (is_file(client->request.path))
     {
         client->writer = malloc(sizeof(struct file_sender));
-        file_sender_init((struct file_sender *)client->writer, client->fd, client->request);
+        file_sender_init((struct file_sender *)client->writer, client->fd, client->request.path);
         return true;
     }
 

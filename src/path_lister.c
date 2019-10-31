@@ -19,10 +19,11 @@ int scandir(const char *dirp, struct dirent ***namelist,
 
 int alphasort(const struct dirent **a, const struct dirent **b);
 
-void path_lister_init(struct path_lister *path_lister, int fd, char *request)
+void path_lister_init(struct path_lister *path_lister, int fd, struct request request)
 {
     path_lister->paths = NULL;
     path_lister->paths_count = 0;
+    path_lister->paths_capacity = 10;
     path_lister->index = -1;
     path_lister->dir = NULL;
     path_lister->request = request;
@@ -49,31 +50,49 @@ int path_lister_write(struct writer *writer)
 
 int path_lister_list(struct path_lister *path_lister)
 {
-    struct dirent **dirents;
-
-    int paths_count = scandir(path_lister->request, &dirents, NULL, alphasort);
-
-    if (path_lister->paths != NULL)
-        free(path_lister->paths);
-
-    path_lister->paths = malloc(paths_count * sizeof(struct path));
-
-    for (int i = 0; i < paths_count; i++)
+    if (path_lister->dir == NULL)
     {
-        path_init(path_lister->paths + i, dirents[i]->d_name);
-        get_info(path_lister->paths + i);
-        free(dirents[i]);
+        path_lister->dir = opendir(path_lister->request.path);
+        path_lister->paths = malloc(path_lister->paths_capacity * sizeof(struct path));
     }
-    path_lister->paths_count = paths_count;
-    free(dirents);
 
-    path_lister->status = PATH_LISTER_STATUS_SORT;
+    struct dirent *dirent = readdir(path_lister->dir);
+
+    if (dirent == NULL)
+    {
+        closedir(path_lister->dir);
+        path_lister->status = PATH_LISTER_STATUS_SORT;
+        return WRITER_STATUS_CONT;
+    }
+
+    if (path_lister->paths_capacity == path_lister->paths_count)
+    {
+        path_lister->paths_capacity *= 2;
+        path_lister->paths = realloc(path_lister->paths, sizeof(struct path) * path_lister->paths_capacity);
+    }
+
+    struct path *path = path_lister->paths + path_lister->paths_count;
+    path_init(path, dirent->d_name);
+    get_info(path);
+
+    path_lister->paths_count++;
+
     return WRITER_STATUS_CONT;
 }
 
 int path_lister_sort(struct path_lister *path_lister)
 {
-    quick_sort(path_lister->paths, 0, path_lister->paths_count - 1, sort_by_permissions);
+    if (!strcmp(path_lister->request.orderby, "name"))
+        quick_sort(path_lister->paths, 0, path_lister->paths_count - 1, sort_by_name);
+    if (!strcmp(path_lister->request.orderby, "permissions"))
+        quick_sort(path_lister->paths, 0, path_lister->paths_count - 1, sort_by_permissions);
+    if (!strcmp(path_lister->request.orderby, "type"))
+        quick_sort(path_lister->paths, 0, path_lister->paths_count - 1, sort_by_type);
+    if (!strcmp(path_lister->request.orderby, "moddate"))
+        quick_sort(path_lister->paths, 0, path_lister->paths_count - 1, sort_by_moddate);
+    if (!strcmp(path_lister->request.orderby, "size"))
+        quick_sort(path_lister->paths, 0, path_lister->paths_count - 1, sort_by_size);
+
     path_lister->status = PATH_LISTER_STATUS_SEND;
     return WRITER_STATUS_CONT;
 }
@@ -90,6 +109,7 @@ int path_lister_send(struct path_lister *path_lister)
 
     if (path_lister->index == path_lister->paths_count)
     {
+        free(path_lister->paths);
         return WRITER_STATUS_DONE;
     }
 

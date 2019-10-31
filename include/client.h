@@ -7,13 +7,14 @@
 
 #include <stdbool.h>
 #include <writer.h>
+#include <request.h>
 
 struct client
 {
     int fd;
     int status;
     int error;
-    char request[1024];
+    struct request request;
     char ip[20];
     struct writer *writer;
 };
