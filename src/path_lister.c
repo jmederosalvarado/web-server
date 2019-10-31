@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdio.h>
 
+#include <sort_utils.h>
 #include <path_utils.h>
 
 #define PATH_LISTER_STATUS_LIST 1
@@ -72,6 +73,7 @@ int path_lister_list(struct path_lister *path_lister)
 
 int path_lister_sort(struct path_lister *path_lister)
 {
+    quick_sort(path_lister->paths, 0, path_lister->paths_count - 1, sort_by_permissions);
     path_lister->status = PATH_LISTER_STATUS_SEND;
     return WRITER_STATUS_CONT;
 }
