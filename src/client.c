@@ -7,6 +7,7 @@
 #include <path_lister.h>
 #include <file_sender.h>
 #include <path_utils.h>
+#include <frontend.h>
 
 void client_init(struct client *client, int fd, char *ip)
 {
@@ -94,6 +95,13 @@ bool client_write(struct client *client)
             free(client->writer);
             client->writer = NULL;
         }
+        return true;
+    }
+
+    if (is_static(client->request.path))
+    {
+        client->writer = malloc(sizeof(struct static_sender));
+        static_sender_init((struct static_sender *)client->writer, client->fd, client->request.path);
         return true;
     }
 
