@@ -6,7 +6,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include <signal.h>
+#include <path_utils.h>
 
 #define PATH_LISTER_STATUS_LIST 1
 #define PATH_LISTER_STATUS_SORT 2
@@ -90,10 +90,12 @@ int path_lister_send(struct path_lister *path_lister)
         return WRITER_STATUS_DONE;
     }
 
+    char *path_name = path_lister->paths[path_lister->index].name;
     char path[1024];
-    sprintf(path, "<li><a href=\"%s\">%s</a></li>",
-            path_lister->paths[path_lister->index].name,
-            path_lister->paths[path_lister->index].name);
+    sprintf(path, "<li><a href=\"%s%s\">%s</a></li>",
+            path_name,
+            is_dir(path_name) ? "/" : "",
+            path_name);
 
     char response[2048];
     sprintf(response, path);

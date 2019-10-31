@@ -4,8 +4,8 @@
 #include <utils.h>
 #include <unistd.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <path_lister.h>
+#include <path_utils.h>
 
 void client_init(struct client *client, int fd, char *ip)
 {
@@ -59,9 +59,6 @@ bool client_read(struct client *client)
     return true;
 }
 
-int is_dir(const char *path);
-int is_file(const char *path);
-
 void send_error(int fd, int error);
 
 bool client_write(struct client *client)
@@ -88,18 +85,4 @@ bool client_write(struct client *client)
 
     client->error = true;
     return false;
-}
-
-int is_dir(const char *path)
-{
-    struct stat path_stat;
-    stat(path, &path_stat);
-    return S_ISDIR(path_stat.st_mode);
-}
-
-int is_file(const char *path)
-{
-    struct stat path_stat;
-    stat(path, &path_stat);
-    return S_ISREG(path_stat.st_mode);
 }
