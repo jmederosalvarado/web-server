@@ -122,10 +122,16 @@ int assign_clients_to_sets(fd_set *read_set, fd_set *write_set, struct client *c
     for (int i = 0; i < clients_count; i++)
     {
         if (clients[i].status == CLIENT_STATUS_READING)
+        {
+            printf("--> Client (%s, %d) is waiting to read\n", clients[i].ip, clients[i].fd);
             FD_SET(clients[i].fd, read_set);
+        }
 
         if (clients[i].status == CLIENT_STATUS_WRITING)
+        {
+            printf("--> Client (%s, %d) is waiting to write\n", clients[i].ip, clients[i].fd);
             FD_SET(clients[i].fd, write_set);
+        }
 
         max_fd = max(max_fd, clients[i].fd);
     }

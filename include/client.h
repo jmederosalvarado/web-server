@@ -5,11 +5,8 @@
 #define CLIENT_STATUS_WRITING 2
 #define CLIENT_STATUS_DONE 3
 
-#define CLIENT_ERROR_NONE 0
-#define CLIENT_ERROR_READ 1
-#define CLIENT_ERROR_METHOD 2
-
 #include <stdbool.h>
+#include <writer.h>
 
 struct client
 {
@@ -18,6 +15,7 @@ struct client
     int error;
     char request[1024];
     char ip[20];
+    struct writer *writer;
 };
 
 void client_init(struct client *client, int fd, char *ip);

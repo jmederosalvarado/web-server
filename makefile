@@ -28,3 +28,4 @@ clean:
 	rm -rf obj bin
 
 compile: $(NECESSARY_DIRS) $(TARGET)
+	@echo compiled

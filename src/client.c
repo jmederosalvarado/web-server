@@ -4,13 +4,16 @@
 #include <utils.h>
 #include <unistd.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <path_lister.h>
 
 void client_init(struct client *client, int fd, char *ip)
 {
     client->fd = fd;
-    client->error = CLIENT_ERROR_NONE;
+    client->error = -1;
     client->status = CLIENT_STATUS_READING;
     client->request[0] = '\0';
+    client->writer = NULL;
     strcpy(client->ip, ip);
 }
 
@@ -20,7 +23,7 @@ void client_close(struct client *client)
 
     close(client->fd);
     client->fd = -1;
-    client->error = CLIENT_ERROR_NONE;
+    client->error = -1;
     client->status = CLIENT_STATUS_DONE;
     client->request[0] = '\0';
 }
@@ -32,12 +35,14 @@ bool client_read(struct client *client)
     char buf[4096] = "\0";
     int read_count = read_line(client->fd, buf, 4096);
 
+    printf("--> Read: %d", read_count);
+
     int matched = sscanf(buf, "GET %s %s", client->request, NULL);
 
     if (!matched)
     {
         fprintf(stderr, ERROR_COLOR "--> Method not allowed %s\n" COLOR_RESET, buf);
-        client->error = CLIENT_ERROR_METHOD;
+        client->error = 400;
     }
 
     if (read_count == 0)
@@ -47,41 +52,52 @@ bool client_read(struct client *client)
         client->status = CLIENT_STATUS_WRITING;
         if (read_count < 0)
         {
-            client->error = CLIENT_ERROR_READ;
+            client->error = 500;
             return false;
         }
     }
     return true;
 }
 
+int is_dir(const char *path);
+int is_file(const char *path);
+
 bool client_write(struct client *client)
 {
     printf("--> Writing to client %s\n", client->ip);
 
-    char *body =
-        "<html>\n"
-        "<title> Explorer </title>\n"
-        "<body>\n"
-        "<h1>Hello from server</h1>\n"
-        "</body>\n"
-        "</html>\n";
+    if (client->writer != NULL)
+    {
+        if ((*client->writer->write)(client->writer) == WRITER_STATUS_DONE)
+        {
+            client->status = CLIENT_STATUS_DONE;
+            free(client->writer);
+            client->writer = NULL;
+        }
+        return true;
+    }
 
-    char header[4096] = "\0";
+    if (is_dir(client->request))
+    {
+        client->writer = malloc(sizeof(struct path_lister));
+        path_lister_init((struct path_lister *)client->writer, client->fd, client->request);
+        return true;
+    }
 
-    strcat(header, "HTTP/1.0 200 OK\n");
-    strcat(header, "Server: Web Server\n");
+    client->status = CLIENT_STATUS_DONE;
+    return false;
+}
 
-    char content_length[20] = "\0";
-    sprintf(content_length, "Content-length: %d\n", strlen(body) * sizeof(char));
-    strcat(header, content_length);
+int is_dir(const char *path)
+{
+    struct stat path_stat;
+    stat(path, &path_stat);
+    return S_ISDIR(path_stat.st_mode);
+}
 
-    strcat(header, "Content-type: text/html\n\n");
-
-    if (write(client->fd, header, strlen(header) * sizeof(char)) < 0)
-        return false;
-    if (write(client->fd, body, strlen(body) * sizeof(char)) < 0)
-        return false;
-
-    client->status = CLIENT_STATUS_READING;
-    return true;
+int is_file(const char *path)
+{
+    struct stat path_stat;
+    stat(path, &path_stat);
+    return S_ISREG(path_stat.st_mode);
 }
