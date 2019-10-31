@@ -36,3 +36,19 @@ int min(int a, int b)
 {
     return a < b ? a : b;
 }
+
+void fix_spaces(char *str)
+{
+    int k = 0;
+    for (int i = 0; i < strlen(str); i++)
+    {
+        if (i < strlen(str) - 3 && str[i] == '%' && str[i + 1] == '2' && str[i + 2] == '0')
+        {
+            str[k++] = ' ';
+            i += 2;
+        }
+        else
+            str[k++] = str[i];
+    }
+    str[k] = '\0';
+}

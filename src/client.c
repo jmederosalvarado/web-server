@@ -39,6 +39,8 @@ bool client_read(struct client *client)
     char request[1024], version[1024];
     int matched = sscanf(buf, "GET %s %s", request, version);
 
+    fix_spaces(request);
+
     char *pos = NULL;
     if (pos = strstr(request, "@orderby-"))
     {
