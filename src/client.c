@@ -39,7 +39,7 @@ bool client_read(struct client *client)
     char request[1024], version[1024];
     int matched = sscanf(buf, "GET %s %s", request, version);
 
-    sprintf(client->request, get_root());
+    sprintf(client->request, "%s", get_root());
     strcat(client->request, request);
 
     if (!matched)
@@ -107,6 +107,6 @@ bool client_write(struct client *client)
 void send_error(int fd, int error)
 {
     char error_msg[20];
-    sprintf(error_msg, "HTTP/1.0 &d\r\n\r\n", error);
+    sprintf(error_msg, "HTTP/1.0 %d\r\n\r\n", error);
     write(fd, error_msg, strlen(error_msg) * sizeof(char));
 }

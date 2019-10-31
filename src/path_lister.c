@@ -98,7 +98,7 @@ int path_lister_send(struct path_lister *path_lister)
             path_name);
 
     char response[2048];
-    sprintf(response, path);
+    sprintf(response, "%s", path);
 
     write(path_lister->writer.fd, response, strlen(response) * sizeof(char));
     path_lister->index++;
