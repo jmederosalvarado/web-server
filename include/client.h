@@ -12,7 +12,7 @@ struct client
 {
     int fd;
     int status;
-    bool error;
+    int error;
     char request[1024];
     char ip[20];
     struct writer *writer;

@@ -11,6 +11,9 @@ int read_line(int fd, char *buf, size_t n)
     if (rc == -1)
         return -1;
 
+    printf("--> Request:\n");
+    printf("\n%s\n", buf);
+
     int count = 0;
     for (int i = 0; i < strlen(buf); i++)
     {

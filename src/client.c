@@ -10,7 +10,7 @@
 void client_init(struct client *client, int fd, char *ip)
 {
     client->fd = fd;
-    client->error = false;
+    client->error = -1;
     client->status = CLIENT_STATUS_READING;
     client->request[0] = '\0';
     client->writer = NULL;
@@ -23,7 +23,7 @@ void client_close(struct client *client)
 
     close(client->fd);
     client->fd = -1;
-    client->error = false;
+    client->error = -1;
     client->status = CLIENT_STATUS_DONE;
     client->request[0] = '\0';
 }
@@ -35,8 +35,6 @@ bool client_read(struct client *client)
     char buf[4096] = "\0";
     int read_count = read_line(client->fd, buf, 4096);
 
-    printf("--> Read: %d", read_count);
-
     char request[1024], version[1024];
     int matched = sscanf(buf, "GET %s %s", request, version);
 
@@ -46,7 +44,7 @@ bool client_read(struct client *client)
     if (!matched)
     {
         fprintf(stderr, ERROR_COLOR "--> Method not allowed %s\n" COLOR_RESET, buf);
-        client->error = true;
+        client->error = 400;
     }
 
     if (read_count == 0)
@@ -56,7 +54,7 @@ bool client_read(struct client *client)
         client->status = CLIENT_STATUS_WRITING;
         if (read_count < 0)
         {
-            client->error = true;
+            client->error = 500;
             return false;
         }
     }
@@ -68,6 +66,13 @@ void send_error(int fd, int error);
 bool client_write(struct client *client)
 {
     printf("--> Writing to client %s\n", client->ip);
+
+    if (client->error > 0)
+    {
+        send_error(client->fd, client->error);
+        client->status = CLIENT_STATUS_DONE;
+        return false;
+    }
 
     if (client->writer != NULL)
     {
@@ -87,6 +92,13 @@ bool client_write(struct client *client)
         return true;
     }
 
-    client->error = true;
-    return false;
+    client->error = 404;
+    return true;
+}
+
+void send_error(int fd, int error)
+{
+    char error_msg[20];
+    sprintf(error_msg, "HTTP/1.0 &d\r\n\r\n", error);
+    write(fd, error_msg, strlen(error_msg) * sizeof(char));
 }

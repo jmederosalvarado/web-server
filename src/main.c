@@ -173,7 +173,7 @@ void clean_clients(struct client *clients, int *clients_count)
     int k = 0;
     for (int i = 0; i < *clients_count; i++)
     {
-        if (clients[i].status == CLIENT_STATUS_DONE || clients[i].error)
+        if (clients[i].status == CLIENT_STATUS_DONE)
             client_close(clients + i);
         else
         {
