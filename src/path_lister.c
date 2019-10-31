@@ -60,6 +60,7 @@ int path_lister_list(struct path_lister *path_lister)
     for (int i = 0; i < paths_count; i++)
     {
         path_init(path_lister->paths + i, dirents[i]->d_name);
+        get_info(path_lister->paths + i);
         free(dirents[i]);
     }
     path_lister->paths_count = paths_count;
@@ -90,15 +91,18 @@ int path_lister_send(struct path_lister *path_lister)
         return WRITER_STATUS_DONE;
     }
 
-    char *path_name = path_lister->paths[path_lister->index].name;
-    char path[1024];
-    sprintf(path, "<li><a href=\"%s%s\">%s</a></li>",
-            path_name,
-            is_dir(path_name) ? "/" : "",
-            path_name);
+    struct path path = path_lister->paths[path_lister->index];
+
+    char path_link[1024];
+    sprintf(path_link, "%s%s", path.name, is_dir(path.name) ? "/" : "");
 
     char response[2048];
-    sprintf(response, "%s", path);
+    sprintf(response, "<li><a href=\"%s\">%s %s %d %s %s</a></li>", path_link,
+            path.name,
+            path.type,
+            path.size,
+            path.moddate,
+            path.permissions);
 
     write(path_lister->writer.fd, response, strlen(response) * sizeof(char));
     path_lister->index++;

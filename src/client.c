@@ -72,7 +72,7 @@ bool client_write(struct client *client)
     {
         send_error(client->fd, client->error);
         client->status = CLIENT_STATUS_DONE;
-        return false;
+        return true;
     }
 
     if (client->writer != NULL)
