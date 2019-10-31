@@ -8,6 +8,11 @@
 #include <static_files/js2.h>
 #include <static_files/js3.h>
 #include <static_files/ico.h>
+#include <static_files/font1.h>
+#include <static_files/font2.h>
+#include <static_files/font3.h>
+#include <static_files/font4.h>
+#include <static_files/font5.h>
 
 void static_sender_init(struct static_sender *static_sender, int fd, char *file)
 {
@@ -18,30 +23,55 @@ void static_sender_init(struct static_sender *static_sender, int fd, char *file)
         static_sender->static_content = ico;
         static_sender->len = ico_len;
     }
-    if (!strcmp(file, "@css1"))
+    else if (!strstr(file, "@css1"))
     {
         static_sender->static_content = css1;
         static_sender->len = css1_len;
     }
-    if (!strcmp(file, "@css2"))
+    else if (!strstr(file, "@css2"))
     {
         static_sender->static_content = css2;
         static_sender->len = css2_len;
     }
-    if (!strcmp(file, "@js1"))
+    else if (!strstr(file, "@js1"))
     {
         static_sender->static_content = js1;
         static_sender->len = js1_len;
     }
-    if (!strcmp(file, "@js2"))
+    else if (!strstr(file, "@js2"))
     {
         static_sender->static_content = js2;
         static_sender->len = js2_len;
     }
-    if (!strcmp(file, "@js3"))
+    else if (!strstr(file, "@js3"))
     {
         static_sender->static_content = js3;
         static_sender->len = js3_len;
+    }
+    else if (!strstr(file, "@font1"))
+    {
+        static_sender->static_content = font1;
+        static_sender->len = font1_len;
+    }
+    else if (!strstr(file, "@font2"))
+    {
+        static_sender->static_content = font2;
+        static_sender->len = font2_len;
+    }
+    else if (!strstr(file, "@font3"))
+    {
+        static_sender->static_content = font3;
+        static_sender->len = font3_len;
+    }
+    else if (!strstr(file, "@font4"))
+    {
+        static_sender->static_content = font4;
+        static_sender->len = font4_len;
+    }
+    else if (!strstr(file, "@font5"))
+    {
+        static_sender->static_content = font5;
+        static_sender->len = font5_len;
     }
 
     static_sender->i = 0;
@@ -54,14 +84,16 @@ int static_sender_send(struct writer *writer)
     if (sender->i == sender->len)
         return WRITER_STATUS_DONE;
 
-    write(sender->writer.fd, sender->static_content, 4096);
+    sender->i += write(sender->writer.fd, sender->static_content, 4096);
     return WRITER_STATUS_DONE;
 }
 
 bool is_static(char *path)
 {
-    if (!strcmp(path, "/favico.ico") || !strcmp(path, "@css1") || !strcmp(path, "@css2") ||
-        !strcmp(path, "@js1") || !strcmp(path, "@js2") || !strcmp(path, "@js3"))
+    if (!strstr(path, "favico.ico") || !strstr(path, "@css1") || !strstr(path, "@css2") ||
+        !strstr(path, "@js1") || !strstr(path, "@js2") || !strstr(path, "@js3") ||
+        !strstr(path, "@font1") || !strstr(path, "@font2") || !strstr(path, "@font3") ||
+        !strstr(path, "@font4") || !strstr(path, "@font5"))
         return true;
     return false;
 }
