@@ -19,7 +19,7 @@ void static_sender_init(struct static_sender *static_sender, int fd, char *file)
 {
     writer_init(&static_sender->writer, fd, static_sender_send);
 
-    if (strstr(file, "favico.ico"))
+    if (strstr(file, "favicon.ico"))
     {
         static_sender->static_content = ico;
         static_sender->len = ico_len;
@@ -90,23 +90,20 @@ int static_sender_send(struct writer *writer)
         return WRITER_STATUS_CONT;
     }
 
-    if (sender->i == sender->len)
+    if (sender->i >= sender->len)
         return WRITER_STATUS_DONE;
 
-    sender->i += write(sender->writer.fd, sender->static_content, 4096);
-    return WRITER_STATUS_DONE;
+    sender->i += write(sender->writer.fd, sender->static_content + sender->i, 4096);
+    return WRITER_STATUS_CONT;
 }
 
 bool is_static(char *path)
 {
-    if (strstr(path, "favico.ico") || strstr(path, "@css1") || strstr(path, "@css2") ||
+    if (strstr(path, "favicon.ico") || strstr(path, "@css1") || strstr(path, "@css2") ||
         strstr(path, "@js1") || strstr(path, "@js2") || strstr(path, "@js3") ||
         strstr(path, "@font1") || strstr(path, "@font2") || strstr(path, "@font3") ||
         strstr(path, "@font4") || strstr(path, "@font5"))
-    {
-        printf("----------------------> static for %s\n", path);
         return true;
-    }
     return false;
 }
 
