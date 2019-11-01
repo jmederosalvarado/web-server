@@ -103,10 +103,7 @@ bool is_static(char *path)
         strstr(path, "@js1") || strstr(path, "@js2") || strstr(path, "@js3") ||
         strstr(path, "@font1") || strstr(path, "@font2") || strstr(path, "@font3") ||
         strstr(path, "@font4") || strstr(path, "@font5"))
-    {
-        printf("----------------------> static for %s\n", path);
         return true;
-    }
     return false;
 }
 
