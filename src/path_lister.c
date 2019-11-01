@@ -123,6 +123,12 @@ int path_lister_send(struct path_lister *path_lister)
     char path_link[1024];
     sprintf(path_link, "%s%s", path.name, is_dir(path.name) ? "/" : "");
 
+    if (!strcmp(path.name, ".") || !strcmp(path.name, ".."))
+    {
+        path_lister->index++;
+        return WRITER_STATUS_CONT;
+    }
+
     char response[2048];
 
     sprintf(response, "<tr>\n");
