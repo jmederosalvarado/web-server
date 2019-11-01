@@ -101,7 +101,6 @@ int path_lister_sort(struct path_lister *path_lister)
 void send_header(struct path_lister *path_lister);
 int path_lister_send(struct path_lister *path_lister)
 {
-    printf("\n\n++++++++++++++++++++++++++++++++++++++++\n\n");
     if (path_lister->index == -1)
     {
 
@@ -128,8 +127,8 @@ int path_lister_send(struct path_lister *path_lister)
 
     sprintf(response, "<tr>\n");
     /*   */ sprintf(response, "%s<th scope=\"row\">\n", response);
-    /*   */ /*   */ sprintf(response, "<%sa href=\"%s\">\n", response, path_link);
-    /*   */ /*   */ /*   */ sprintf(response, "%s <span class=\"btn btn-primary\">%s</span>\n", response, path.name);
+    /*   */ /*   */ sprintf(response, "%s<a href=\"%s\">\n", response, path_link);
+    /*   */ /*   */ /*   */ sprintf(response, "%s<span class=\"btn btn-primary\">%s</span>\n", response, path.name);
     /*   */ /*   */ sprintf(response, "%s</a>\n", response);
     /*   */ sprintf(response, "%s</th>\n", response);
     /*   */ sprintf(response, "%s<td>%s</td>\n", response, path.type);
@@ -137,8 +136,6 @@ int path_lister_send(struct path_lister *path_lister)
     /*   */ sprintf(response, "%s<td>%s</td>\n", response, path.moddate);
     /*   */ sprintf(response, "%s<td>%d</td>\n", response, path.size);
     /*   */ sprintf(response, "%s</tr>\n", response);
-
-    printf("\n\n%s\n\n", response);
 
     write(path_lister->writer.fd, response, strlen(response) * sizeof(char));
     path_lister->index++;
@@ -165,7 +162,7 @@ void send_initial_body(struct path_lister *path_lister)
     /*   */ sprintf(response, "%s<head>\n", response);
 
     /*   */ sprintf(response, "%s<meta charset=\"utf -8\">\n", response);
-    /*   */ sprintf(response, "%s<meta name=\"viewport\"content =\"width=device-width, initial-scale=1, shrink-to-fit=no\">\n", response);
+    /*   */ sprintf(response, "%s<meta name=\"viewport\" content =\"width=device-width, initial-scale=1, shrink-to-fit=no\">\n", response);
     /*   */ sprintf(response, "%s<link rel=\"stylesheet\" href=\"@css1.css\">\n", response);
     /*   */ sprintf(response, "%s<link rel=\"stylesheet\" href=\"@css2.css\">\n", response);
 
@@ -191,8 +188,11 @@ void send_initial_body(struct path_lister *path_lister)
 
     /*   */ /*   */ /*   */ /*   */ /*   */ sprintf(response, "%s<div class=\"col-1\">\n", response);
 
-    //if no root
-    /*   */ /*   */ /*   */ /*   */ /*   */ /*   */ sprintf(response, "%s<a href=\"..\" class=\"material-icons\">arrow_back</a>\n", response);
+    char dir[4096];
+    strcpy(dir, path_lister->request.path);
+    dir[strlen(path_lister->request.path) - 1] = '\0';
+    if (strcmp(dir, get_root()))
+        /*   */ /*   */ /*   */ /*   */ /*   */ /*   */ sprintf(response, "%s<a href=\"..\" class=\"material-icons\">arrow_back</a>\n", response);
 
     /*   */ /*   */ /*   */ /*   */ /*   */ sprintf(response, "%s</div>\n", response);
 
@@ -226,8 +226,6 @@ void send_initial_body(struct path_lister *path_lister)
 
     /*   */ /*   */ /*   */ /*   */ /*   */ sprintf(response, "%s<tbody>\n", response);
 
-    printf("\n\n%s\n\n", response);
-
     write(path_lister->writer.fd, response, strlen(response) * sizeof(char));
 }
 
@@ -255,6 +253,4 @@ void send_final_body(struct path_lister *path_lister)
     sprintf(response, "%s</html>\n", response);
 
     write(path_lister->writer.fd, response, strlen(response) * sizeof(char));
-
-    printf("\n\n%s\n\n", response);
 }
