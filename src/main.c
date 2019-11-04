@@ -10,6 +10,7 @@
 #include <string.h>
 #include <errno.h>
 #include <arpa/inet.h>
+#include <signal.h>
 
 #include <path_utils.h>
 #include <client.h>
@@ -74,15 +75,18 @@ int main(int argc, char **argv)
             if (FD_ISSET(clients[i].fd, &read_set))
             {
                 printf("--> Client (ip: %s, fd: %d) is ready for reading\n", clients[i].ip, clients[i].fd);
-                if (clients[i].status == CLIENT_STATUS_READING && !client_read(clients + i))
+                if (!client_read(clients + i))
                     fprintf(stderr, ERROR_COLOR "--> Error reading from client: %d\n" COLOR_RESET, clients[i].fd);
             }
 
             if (FD_ISSET(clients[i].fd, &write_set))
             {
+
+                signal(SIGPIPE, SIG_IGN);
                 printf("--> Client (ip: %s, fd: %d) is ready for writing\n", clients[i].ip, clients[i].fd);
                 if (clients[i].status == CLIENT_STATUS_WRITING && !client_write(clients + i))
                     fprintf(stderr, ERROR_COLOR "--> Error writing to client: %d\n" COLOR_RESET, clients[i].fd);
+                signal(SIGPIPE, SIG_DFL);
             }
         }
 
@@ -141,6 +145,7 @@ int assign_clients_to_sets(fd_set *read_set, fd_set *write_set, struct client *c
         if (clients[i].status == CLIENT_STATUS_WRITING)
         {
             printf("--> Client (%s, %d) is waiting to write\n", clients[i].ip, clients[i].fd);
+            FD_SET(clients[i].fd, read_set);
             FD_SET(clients[i].fd, write_set);
         }
 

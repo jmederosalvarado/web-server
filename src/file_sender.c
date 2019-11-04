@@ -36,6 +36,7 @@ void file_sender_send_header(struct file_sender *file_sender)
 {
     char *header =
         "HTTP/1.0 200 OK\r\n"
+        "Content-Disposition: attachment\r\n"
         "Server: Web Server\r\n\r\n";
 
     write(file_sender->writer.fd, header, strlen(header) * sizeof(char));
