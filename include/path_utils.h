@@ -10,6 +10,6 @@ char *get_root();
 int is_dir(const char *path);
 int is_file(const char *path);
 
-void get_info(struct path *p);
+void get_info(char *path, struct path *p);
 
 #endif

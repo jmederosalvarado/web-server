@@ -37,12 +37,15 @@ void get_type(struct path *p, struct stat container);
 void get_size(struct path *p, struct stat container);
 void get_moddate(struct path *p, struct stat container);
 
-void get_info(struct path *p)
+void get_info(char *path, struct path *p)
 {
     struct stat container;
 
-    if (stat(p->name, &container) < 0)
+    if (stat(path, &container) < 0)
+    {
+        printf("ERROR: %s\n", path);
         perror("stat");
+    }
 
     get_permissions(p, container);
     get_type(p, container);

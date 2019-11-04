@@ -74,7 +74,12 @@ int path_lister_list(struct path_lister *path_lister)
 
     struct path *path = path_lister->paths + path_lister->paths_count;
     path_init(path, dirent->d_name);
-    get_info(path);
+
+    char path_absolute[1024];
+    strcpy(path_absolute, path_lister->request.path);
+    strcat(path_absolute, path->name);
+
+    get_info(path_absolute, path);
 
     path_lister->paths_count++;
 
@@ -121,7 +126,12 @@ int path_lister_send(struct path_lister *path_lister)
     struct path path = path_lister->paths[path_lister->index];
 
     char path_link[1024];
-    sprintf(path_link, "%s%s", path.name, is_dir(path.name) ? "/" : "");
+
+    char path_absolute[1024];
+    strcpy(path_absolute, path_lister->request.path);
+    strcat(path_absolute, path.name);
+
+    sprintf(path_link, "%s%s", path.name, is_dir(path_absolute) ? "/" : "");
 
     if (!strcmp(path.name, ".") || !strcmp(path.name, ".."))
     {
@@ -139,8 +149,8 @@ int path_lister_send(struct path_lister *path_lister)
     /*   */ sprintf(response, "%s</th>\n", response);
     /*   */ sprintf(response, "%s<td>%s</td>\n", response, path.type);
     /*   */ sprintf(response, "%s<td>%s</td>\n", response, path.permissions);
-    /*   */ sprintf(response, "%s<td>%s</td>\n", response, path.moddate);
     /*   */ sprintf(response, "%s<td>%d</td>\n", response, path.size);
+    /*   */ sprintf(response, "%s<td>%s</td>\n", response, path.moddate);
     /*   */ sprintf(response, "%s</tr>\n", response);
 
     write(path_lister->writer.fd, response, strlen(response) * sizeof(char));
@@ -188,7 +198,7 @@ void send_initial_body(struct path_lister *path_lister)
 
     /*   */ /*   */ /*   */ /*   */ /*   */ sprintf(response, "%s<div class=\"col-11  \">\n", response);
 
-    /*   */ /*   */ /*   */ /*   */ /*   */ /*   */ sprintf(response, "%s<h3 class=\"card-title\">Index of /</h3>\n", response);
+    /*   */ /*   */ /*   */ /*   */ /*   */ /*   */ sprintf(response, "%s<h3 class=\"card-title\">Index of %s</h3>\n", response, path_lister->request.path);
 
     /*   */ /*   */ /*   */ /*   */ /*   */ sprintf(response, "%s</div>\n", response);
 
